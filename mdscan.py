@@ -730,16 +730,16 @@ def exhaust_neighborhoods(traj, k):
     # =========================================================================
     while True:
         # pool_lens.append(len(pool))
-        # ____ get ( Kd(A), A, RMSD(A), and the sorted knn(A) partition ) _____
+        # get ( Kd(A), A, RMSD(A), and the sorted knn(A) partition ) ----------
         try:
             A_Kd, A, A_rmsd_knn = heapq.heappop(pool)
-        # ____ if pool is empty, check for a random not-yet-visited node ______
+        # if pool is empty, check for a random not-yet-visited node -----------
         except IndexError:
             try:
                 A = not_visited.pop()
                 A_Kd, A, A_rmsd_knn = get_node_info(A, traj, k)
                 Kd_arr[A] = -A_Kd
-            # ___ if all nodes visited, break & check exhausted heap __________
+            # if all nodes visited, break & check exhausted heap --------------
             except KeyError:
                 break
         # =====================================================================
@@ -747,7 +747,7 @@ def exhaust_neighborhoods(traj, k):
         # =====================================================================
         while True:
             try:
-                # ____ consume the knn(A) iterator (in rmsd ordering) _________
+                # consume the knn(A) iterator (in rmsd ordering) --------------
                 B = int(next(A_rmsd_knn))
             except StopIteration:
                 # ____ if knn(A) exhausted, send A to exhausted heap then break
@@ -761,7 +761,7 @@ def exhaust_neighborhoods(traj, k):
                 Kd_arr[B] = B_Kd
             else:
                 B_Kd = Kd_arr[B]
-            # ____ cases where Kd(A) > Kd(B) before exhaustion ________________
+            # cases where Kd(A) > Kd(B) before exhaustion ---------------------
             if -A_Kd > B_Kd:
                 nn_arr[A] = B
                 dist_arr[A] = -A_Kd
