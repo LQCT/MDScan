@@ -122,8 +122,7 @@ def is_valid_traj(traj, valid_trajs):
         raise ValueError('The trajectory format "{}" '.format(traj_ext) +
                          'is not available. Valid trajectory formats '
                          'are: {}'.format(valid_trajs))
-    else:
-        return True
+    return True
 
 
 def traj_needs_top(traj):
@@ -144,8 +143,7 @@ def traj_needs_top(traj):
     traj_ext = traj.split('.')[-1]
     if traj_ext in ['h5', 'lh5', 'pdb']:
         return False
-    else:
-        return True
+    return True
 
 
 def is_valid_top(topology, valid_tops):
@@ -180,8 +178,7 @@ def is_valid_top(topology, valid_tops):
         raise ValueError('The topology format "{}"'.format(top_ext) +
                          'is not available. Valid topology formats'
                          'are: {}'.format(valid_tops))
-    else:
-        return True
+    return True
 
 
 def load_raw_traj(traj, valid_trajs, topology=None):
@@ -207,7 +204,7 @@ def load_raw_traj(traj, valid_trajs, topology=None):
         if is_valid_top(topology, valid_tops):
             return md.load(traj, top=topology)
 
-    elif is_valid_traj(traj, valid_trajs) and not traj_needs_top(traj):
+    if is_valid_traj(traj, valid_trajs) and not traj_needs_top(traj):
         return md.load(traj)
 
 
@@ -294,8 +291,7 @@ def shrink_traj_range(first, last, stride, traj):
     sliced = slice(first, last, stride)
     if sliced not in [slice(0, N, 1), slice(0, None, 1)]:
         return traj.slice(sliced)
-    else:
-        return traj
+    return traj
 
 
 def get_node_info(node, traj, k):
@@ -1040,23 +1036,23 @@ def to_VMD(topology, first, N, last, stride, final_array):
 
 if __name__ == '__main__':
     # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    from argparse import Namespace
-    folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-    args = Namespace(
-        topology=folder + 'aligned_tau.pdb',
-        trajectory=folder + 'aligned_original_tau_6K.dcd',
-        first=0, last=None, stride=1,
-        selection='all',
-        clust_sel_met='eom',
-        min_clust_size=2,
-        k=10,
-        outdir='./')
+    # from argparse import Namespace
+    # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
+    # args = Namespace(
+    #     topology=folder + 'aligned_tau.pdb',
+    #     trajectory=folder + 'aligned_original_tau_6K.dcd',
+    #     first=0, last=None, stride=1,
+    #     selection='all',
+    #     clust_sel_met='eom',
+    #     min_clust_size=2,
+    #     k=10,
+    #     outdir='./')
 
     # ======================================================================= #
     # >>>> FIRST PART: qMST CONSTRUCTION                                      #
     # ======================================================================= #
     # ++++ Initializing
-    # args = parse_arguments()
+    args = parse_arguments()
     np.seterr(divide='ignore', invalid='ignore')         # Avoid division error
     traj = load_raw_traj(args.trajectory, valid_trajs, args.topology)
     traj = shrink_traj_selection(traj, args.selection)
