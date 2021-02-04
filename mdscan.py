@@ -75,7 +75,7 @@ def parse_arguments():
     clust.add_argument('-min_samples', action='store', dest='k',
                        help='Number of k nearest neighbors to consider\
                        [default: %(default)s]',
-                       type=int, required=False, default=5, metavar='k')
+                       type=int, required=False, default=10, metavar='k')
     clust.add_argument('-min_clust_size', action='store',
                        dest='min_clust_size',
                        help='Minimum number of points in agrupations to be\
