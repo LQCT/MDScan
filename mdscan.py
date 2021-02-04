@@ -1036,23 +1036,23 @@ def to_VMD(topology, first, N, last, stride, final_array):
 
 if __name__ == '__main__':
     # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # from argparse import Namespace
-    # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-    # args = Namespace(
-    #     topology=folder + 'aligned_tau.pdb',
-    #     trajectory=folder + 'aligned_original_tau_6K.dcd',
-    #     first=0, last=None, stride=1,
-    #     selection='all',
-    #     clust_sel_met='eom',
-    #     min_clust_size=2,
-    #     k=10,
-    #     outdir='./')
+    from argparse import Namespace
+    folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
+    args = Namespace(
+        topology=folder + 'aligned_tau.pdb',
+        trajectory=folder + 'aligned_original_tau_6K.dcd',
+        first=0, last=None, stride=1,
+        selection='all',
+        clust_sel_met='eom',
+        min_clust_size=2,
+        k=10,
+        outdir='./')
 
     # ======================================================================= #
     # >>>> FIRST PART: qMST CONSTRUCTION                                      #
     # ======================================================================= #
     # ++++ Initializing
-    args = parse_arguments()
+    # args = parse_arguments()
     np.seterr(divide='ignore', invalid='ignore')         # Avoid division error
     traj = load_raw_traj(args.trajectory, valid_trajs, args.topology)
     traj = shrink_traj_selection(traj, args.selection)
