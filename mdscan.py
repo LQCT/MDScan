@@ -1090,7 +1090,7 @@ if __name__ == '__main__':
     # saving python objects
     basename = os.path.basename(args.topology).split('.')[0]
     pickname = '{}_mdscan.pick'.format(basename)
-    pickle_to_file((final_array, exhausted, nn_arr, dist_arr, selected),
-                   pickname)
+    pickle_to_file(
+        (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array), pickname)
     # saving VMD visualization script
     to_VMD(args.topology, args.first, args.last, N1, args.stride, final_array)
