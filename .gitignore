@@ -1,3 +1,5 @@
 *pick
 *log
 test/
+.spyproject/
+docs/mdscan_old.py

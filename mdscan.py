@@ -15,7 +15,7 @@ import itertools as it
 from collections import defaultdict, deque
 
 import mdtraj as md
-import networkx as nx
+#import networkx as nx
 
 valid_tops = set(['pdb', 'pdb.gz', 'h5', 'lh5', 'prmtop', 'parm7', 'prm7',
                   'psf', 'mol2', 'hoomdxml', 'gro', 'arc', 'hdf5', 'gsd'])
@@ -75,7 +75,7 @@ def parse_arguments():
     clust.add_argument('-min_samples', action='store', dest='k',
                        help='Number of k nearest neighbors to consider\
                        [default: %(default)s]',
-                       type=int, required=False, default=10, metavar='k')
+                       type=int, required=False, default=2, metavar='k')
     clust.add_argument('-min_clust_size', action='store',
                        dest='min_clust_size',
                        help='Minimum number of points in agrupations to be\
@@ -293,7 +293,7 @@ def shrink_traj_range(first, last, stride, traj):
         return traj.slice(sliced)
     return traj
 
-
+# @profile
 def get_node_info(node, traj, k):
     """
     Get all the necessary information of a particular node.
@@ -357,6 +357,37 @@ def get_tree_side(root, nn_arr):
         expansion = np.where(nn_arr == x)[0]
         to_visit.extend(expansion)
         root_side.update(expansion)
+
+
+def get_tree_side2(root, nn_arr):
+    """
+    Parameters
+    ----------
+    root : int
+        Node starting the expansion of one sub-tree (tree component).
+    nn_arr : numpy.ndarray
+        Array of nearest neighbors forming edges. Indices correspond to each
+        node in the graph and the value correspond to the other node forming
+        a directed edge (index->value).
+
+    Returns
+    -------
+    root_side : set
+        Set of nodes forming the sub-tree expanded from the desconnection of
+        root node.
+    """
+    topo_forest = defaultdict(set)
+    for i, x in enumerate(nn_arr):
+        topo_forest[x].add(i)
+
+    side_X = set([root])
+    iterator = deque([root])
+    while iterator:
+        next_node = iterator.pop()
+        next_family = topo_forest[next_node]
+        side_X.update(next_family)
+        iterator.extend(next_family)
+    return side_X
 
 
 def check_tree(N, nn_arr, dist_arr):
@@ -454,10 +485,12 @@ def cut_tree(A, B, forest_top):
     -------
     None.
     """
-    forest_top[A].remove(B)
-    forest_top[B].remove(A)
+    if A in forest_top[B]:
+        forest_top[B].remove(A)
+    if B in forest_top[A]:
+        forest_top[A].remove(B)
 
-
+#@profile
 def get_node_side(X, forest_top):
     """
     Get the side of the tree from node X (inclusive).
@@ -510,6 +543,19 @@ def assert_node_side(X, forest_top, mpoints):
         if len(side_X) >= mpoints:
             break
     return len(side_X) >= mpoints
+
+
+# def assert_node_side(active_node, topo_forest, mpoints):
+#     side_X = set([active_node])
+#     iterator = deque([active_node])
+#     while iterator:
+#         next_node = iterator.pop()
+#         next_family = topo_forest[next_node]
+#         side_X.update(next_family)
+#         iterator.extend(next_family)
+#         if len(side_X) >= mpoints:
+#             break
+#     return len(side_X) >= mpoints
 
 
 def get_master_topology(nn_arr, dist_arr, export=True):
@@ -685,7 +731,7 @@ def prune_qMST(nn_arr, dist_arr, forest_top, mpoints):
             clusters[parent]['S'] += split_stability
     return clusters, clust_array
 
-
+# @profile
 def exhaust_neighborhoods(traj, k):
     """
     Exhaust knn of nodes searching for minimal mrd in a dual-heap approach.
@@ -765,7 +811,7 @@ def exhaust_neighborhoods(traj, k):
     # return Kd_arr, dist_arr, nn_arr, exhausted, pool_lens
     return Kd_arr, dist_arr, nn_arr, exhausted
 
-
+# @profile
 def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     """
     Join components rooted at the exhausted nodes to the main tree.
@@ -822,7 +868,7 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     dist_arr[minim_A] = 0
     return dist_arr, nn_arr
 
-
+#@profile
 def assign_deltas_and_stabilities(clusters):
     """
     Assign deltas an stabilities of clusters according based on the algorithm
@@ -880,7 +926,68 @@ def assign_deltas_and_stabilities(clusters):
     return cinfo, ctree
 
 
-def get_final_clusters(selected, cinfo, ctree, orig_clust_array, clust_sel_met,
+def assign_deltas_and_stabilities2(clusters):
+    """
+    Assign deltas an stabilities of clusters according based on the algorithm
+    by Campello et. al.
+
+    Parameters
+    ----------
+    clusters : dict
+        DESCRIPTION.
+
+    Returns
+    -------
+    cinfo : pandas.DataFrame
+        Dataframe containing all the clusters information.
+    ctree : dict
+        Dict of sets relating clusters parents and children.
+
+    """
+    # Creating the template for info storage ----------------------------------
+    # cinfo = pd.DataFrame(clusters).T.astype({'birth': float,
+    #                                           'parent': np.int32,
+    #                                           'childA': np.int32,
+    #                                           'childB': np.int32,
+    #                                           'S': float})
+    # cinfo['delta'] = 1
+    # cinfo.loc[0, 'delta'] = 0
+    clusters[0]['delta'] = 0
+    # top -> bottom pass ------------------------------------------------------
+    top_bottom = deque()
+    ctree = defaultdict(set)
+    iterator = deque([0])
+    # childs_A = cinfo.childA
+    # childs_B = cinfo.childB
+    while iterator:
+        P = iterator.popleft()
+        A = clusters[P]['childA']
+        if A == -1:
+            continue
+        B = clusters[P]['childB']
+        top_bottom.append([P, A, B])
+        ctree[P].update([A, B])
+        iterator.append(A)
+        iterator.append(B)
+    # bottom -> top pass ------------------------------------------------------
+    top_bottom.popleft()
+    while top_bottom:
+        P, A, B = top_bottom.pop()
+        # sum_AB = cinfo.loc[A, 'S'] + cinfo.loc[B, 'S']
+        sum_AB = clusters[A]['S'] + clusters[B]['S']
+        if clusters[P]['S'] < sum_AB:
+            clusters[P]['S'] = sum_AB
+            clusters[P]['delta'] = 0
+        else:
+            subtree = get_node_side(P, ctree)
+            subtree.remove(P)
+            for x in subtree:
+                clusters[x]['delta'] = 0
+            # cinfo.loc[list(subtree), 'delta'] = 0
+    return clusters, ctree
+
+
+def get_final_clusters(selected, clusters, ctree, orig_clust_array, clust_sel_met,
                        include_children=True):
     """
     Get the final labelling of the clustering job.
@@ -911,13 +1018,15 @@ def get_final_clusters(selected, cinfo, ctree, orig_clust_array, clust_sel_met,
     if clust_sel_met == 'leaf':
         leaf_selected = []
         for s in selected:
-            if cinfo.loc[s, 'childA'] == -1:
+            # if cinfo.loc[s, 'childA'] == -1:
+            if clusters[s]['childA'] == -1:
                 leaf_selected.append(s)
         selected = leaf_selected
     # report children of selected clusters as valid members ?
     if include_children:
         for s in selected:
-            if cinfo.loc[s, 'childA'] != -1:
+            # if cinfo.loc[s, 'childA'] != -1:
+            if clusters[s]['childA'] != -1:
                 subtree = get_node_side(s, ctree)
                 subtree.remove(s)
                 for t in subtree:
@@ -1034,25 +1143,168 @@ def to_VMD(topology, first, N, last, stride, final_array):
     return logname
 
 
+def get_otree_topology2(nn_arr):
+    topo_forest = defaultdict(set)
+    for i, x in enumerate(nn_arr):
+        topo_forest[x].add(i)
+    return topo_forest
+
+# @profile
+def prune_qMST2(nn_arr, dist_arr, topo_forest, mpoints):
+    # Clusters tracking machinery ---------------------------------------------
+    N = dist_arr.size
+    cluster_id = it.count(start=1, step=2)
+    clust_array = np.zeros(N, dtype=np.int32)
+    template = {'birth': 0, 'death': -1, 'parent': -1,
+                'childA': -1, 'childB': -1, 'S': 0, 'delta': 1}
+    clusters = {}
+    clusters.update({0: template.copy()})
+    rejected = set()
+    components = dict()
+    components.update({0: set(range(N))})
+    # ###!!!!
+    mapping = np.zeros(N, dtype=np.int)
+
+    # Cutting -----------------------------------------------------------------
+    lamb = 1 / dist_arr
+    order = iter(lamb.argsort())
+    while True:
+        try:
+            A = next(order)
+        except StopIteration:
+            break
+        B = nn_arr[A]
+        if (A in rejected) or (B in rejected):
+            continue
+        lambda_dist = lamb[A]
+        cut_tree(A, B, topo_forest)
+        # Retrieving sides with auxiliar dict of components -------------------
+        # for c in components:
+        #     if A in components[c]:
+        #         component_id = c
+        #         break
+        # ##!!!!
+        component_id = mapping[A]
+        component = components[component_id]
+        # if assert_node_side(A, topo_forest, mpoints):
+        #     # side_B = get_node_side(B, topo_forest)
+        #     # side_A = component - side_B
+        #     side_A = get_node_side(A, topo_forest)
+        #     side_B = component - side_A
+        # else:
+        #     side_A = get_node_side(A, topo_forest)
+        #     side_B = component - side_A
+        side_A = get_node_side2(A, topo_forest)
+        side_B = component - side_A
+        lenA = len(side_A)
+        lenB = len(side_B)
+        # =====================================================================
+        # Both sides are big enough to form clusters: SPLITTING BRANCH
+        # =====================================================================
+        if (lenA >= mpoints) and (lenB >= mpoints):
+            # create new labels for the splitted clusters
+            id_A = next(cluster_id)
+            id_B = id_A + 1
+            del components[component_id]
+            components.update({id_A: side_A, id_B: side_B})
+            # mapping[list(side_A)] = id_A
+            # mapping[list(side_B)] = id_B
+            mapping[np.fromiter(side_A, dtype=np.int)] = id_A
+            mapping[np.fromiter(side_B, dtype=np.int)] = id_B
+            # determine the parent of theese clusters and their lambda birth
+            sample = side_A.pop()
+            parent = clust_array[sample]
+            side_A.add(sample)
+            template['birth'] = lambda_dist
+            clusters[parent]['death'] = lambda_dist
+            template['parent'] = parent
+            # partition points into both clusters
+            clust_array[np.fromiter(side_A, dtype=np.int32)] = id_A
+            clusters.update({id_A: template.copy()})
+            clust_array[np.fromiter(side_B, dtype=np.int32)] = id_B
+            clusters.update({id_B: template.copy()})
+            # set clusters as their parent children
+            clusters[parent]['childA'] = id_A
+            clusters[parent]['childB'] = id_B
+            # compute the stability of the parent cluster
+            split_stability = (lenA + lenB) * (lambda_dist - clusters[parent]['birth'])
+            clusters[parent]['S'] += split_stability
+        # =====================================================================
+        # Both sides are too small to form clusters: CLOSING BRANCH
+        # =====================================================================
+        elif (lenA < mpoints) and (lenB < mpoints):
+            # discard future cuts of both components
+            rejected.update(side_A)
+            rejected.update(side_B)
+            del components[component_id]
+            # determine the parent cluster
+            sample = side_B.pop()
+            parent = clust_array[sample]
+            # update parent stability
+            split_stability = (lenA + lenB) * (lambda_dist - clusters[parent]['birth'])
+            clusters[parent]['S'] += split_stability
+            clusters[parent]['death'] = lambda_dist
+        # =====================================================================
+        # One of the clusters is just loosing points: SHRINKING BRANCH
+        # =====================================================================
+        elif lenA < mpoints:
+            # discard future cuts of side_A components
+            rejected.update(side_A)
+            components[component_id].difference_update(side_A)
+            # determine the parent cluster of side_A
+            sample = side_A.pop()
+            side_A.add(sample)
+            parent = clust_array[sample]
+            # update parent stability
+            split_stability = lenA * (lambda_dist - clusters[parent]['birth'])
+            clusters[parent]['S'] += split_stability
+        elif lenB < mpoints:
+            # discard future cuts of side_B components
+            rejected.update(side_B)
+            components[component_id].difference_update(side_B)
+            # determine the parent cluster of side_B
+            sample = side_B.pop()
+            side_B.add(sample)
+            parent = clust_array[sample]
+            # update parent stability
+            split_stability = lenB * (lambda_dist - clusters[parent]['birth'])
+            clusters[parent]['S'] += split_stability
+    return clusters, clust_array
+
+
+def get_node_side2(active_node, topo_forest):
+    side_X = set([active_node])
+    iterator = deque([active_node])
+    while iterator:
+        next_node = iterator.pop()
+        next_family = topo_forest[next_node]
+        side_X.update(next_family)
+        iterator.extend(next_family)
+    return side_X
+
+
+#%%
 if __name__ == '__main__':
+#@profile
+#def main():
     # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    from argparse import Namespace
-    folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-    args = Namespace(
-        topology=folder + 'aligned_tau.pdb',
-        trajectory=folder + 'aligned_original_tau_6K.dcd',
-        first=0, last=None, stride=1,
-        selection='all',
-        clust_sel_met='eom',
-        min_clust_size=2,
-        k=10,
-        outdir='./')
+#    from argparse import Namespace
+#    folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
+#    args = Namespace(
+#        topology=folder + 'aligned_tau.pdb',
+#        trajectory=folder + 'aligned_original_tau_6K.dcd',
+#        first=0, last=None, stride=1,
+#        selection='all',
+#        clust_sel_met='eom',
+#        min_clust_size=2,
+#        k=2,
+#        outdir='./')
 
     # ======================================================================= #
     # >>>> FIRST PART: qMST CONSTRUCTION                                      #
     # ======================================================================= #
     # ++++ Initializing
-    # args = parse_arguments()
+    args = parse_arguments()
     np.seterr(divide='ignore', invalid='ignore')         # Avoid division error
     traj = load_raw_traj(args.trajectory, valid_trajs, args.topology)
     traj = shrink_traj_selection(traj, args.selection)
@@ -1072,16 +1324,19 @@ if __name__ == '__main__':
     # >>>> SECOND PART: CLUSTERS EXTRACTION                                   #
     # ======================================================================= #
     # ++++ Constructing the master topology of nodes
-    forest_top = get_master_topology(nn_arr, dist_arr, export=False)
+    # forest_top = get_master_topology(nn_arr, dist_arr, export=False)
+    forest_top = get_otree_topology2(nn_arr)
     # ++++ Pruning the qMST
     mcs = args.min_clust_size
-    clusters, orig_clust_array = prune_qMST(nn_arr, dist_arr, forest_top, mcs)
+    # clusters, orig_clust_array = prune_qMST(nn_arr, dist_arr, forest_top, mcs)
+    clusters, orig_clust_array = prune_qMST2(nn_arr, dist_arr, forest_top, mcs)
     # ++++ Assigning deltas and stabilities in a two-pass approach
-    cinfo, ctree = assign_deltas_and_stabilities(clusters)
+    reclusters, ctree = assign_deltas_and_stabilities2(clusters)
     # ++++ Selecting flat clustering (deltas == 1)
-    selected = cinfo[cinfo.delta == 1].index
+    # selected = cinfo[cinfo.delta == 1].index
+    selected = [x for x in reclusters if reclusters[x]['delta'] == 1]
     # ++++ Getting final clustering
-    final_array = get_final_clusters(selected, cinfo, ctree, orig_clust_array,
+    final_array = get_final_clusters(selected, reclusters, ctree, orig_clust_array,
                                      args.clust_sel_met, include_children=True)
 
     # ======================================================================= #
@@ -1094,3 +1349,8 @@ if __name__ == '__main__':
         (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array), pickname)
     # saving VMD visualization script
     to_VMD(args.topology, args.first, args.last, N1, args.stride, final_array)
+    print(final_array.max())
+    print()
+    print()
+    print()
+
