@@ -6,3 +6,5 @@ docs/mdscan_old.py
 *.txt
 *.lprof
 *__pycache__
+*.graphml
+numbaTesting.py

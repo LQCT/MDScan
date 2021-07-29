@@ -5,45 +5,57 @@ Created on Sun Jul 25 19:25:18 2021
 @author: Roy González Alemán
 @contact: roy_gonzalez@fq.uh.cu, roy.gonzalez-aleman@u-psud.fr
 """
-import numpy as np
 import heapq
+import itertools as it
 
+import numpy as np
 import mdtraj as md
 import networkx as nx
 
+import mdpack.vantage as vnt
+from mdpack.clusterize import get_node_side2, get_otree_topology2
 
-def get_node_info(node, traj, k):
-    """
-    Get all the necessary information of a particular node.
+# @profile
+# def get_node_info(node, traj, k):
+#     """
+#     Get all the necessary information of a particular node.
 
-    Parameters
-    ----------
-    node : int
-        Node to analyze.
-    traj : mdtraj.Trajectory
-        Trajectory to analyze.
-    k : int
-        Number of nearest neighbors to calculate the CoreDistance(node).
+#     Parameters
+#     ----------
+#     node : int
+#         Node to analyze.
+#     traj : mdtraj.Trajectory
+#         Trajectory to analyze.
+#     k : int
+#         Number of nearest neighbors to calculate the CoreDistance(node).
 
-    Returns
-    -------
-    node_info : tuple
-        Tuple containing the necessary node information:
-            node_info[0]: CoreDistance(node) (inverted for a "max heap")
-            node_info[1]: node index
-            node_info[2]: iterator of the rmsd knn of node
-    """
-    # Get RMSD(node), Kd(node) and knn sorted partition -----------------------
-    # k += 1
-    node_rmsd = md.rmsd(traj, traj, node, precentered=True)
-    node_rmsd_part = np.argpartition(node_rmsd, k)[:k + 1]
-    argsort_indx = node_rmsd[node_rmsd_part].argsort()
-    ordered_indx = node_rmsd_part[argsort_indx]
-    node_knn = iter(ordered_indx)
+#     Returns
+#     -------
+#     node_info : tuple
+#         Tuple containing the necessary node information:
+#             node_info[0]: CoreDistance(node) (inverted for a "max heap")
+#             node_info[1]: node index
+#             node_info[2]: iterator of the rmsd knn of node
+#     """
+#     # Get RMSD(node), Kd(node) and knn sorted partition -----------------------
+#     # k += 1
+#     node_rmsd = md.rmsd(traj, traj, node, precentered=True)
+#     node_rmsd_part = np.argpartition(node_rmsd, k)[:k + 1]
+#     argsort_indx = node_rmsd[node_rmsd_part].argsort()
+#     ordered_indx = node_rmsd_part[argsort_indx]
+#     node_knn = iter(ordered_indx)
+#     next(node_knn)
+#     # Get CoreDistance(A) as Kd -----------------------------------------------
+#     node_Kd = node_rmsd[ordered_indx[-1]]
+#     node_rmsd = None
+#     node_info = (-node_Kd, node, node_knn)
+#     return node_info
+
+
+def get_node_info2(vptree, node, k):
+    node_Kd, kheap = vptree.query_node(node, k)
+    node_knn = (x[1] for x in sorted(kheap, key=lambda x: -x[0]))
     next(node_knn)
-    # Get CoreDistance(A) as Kd -----------------------------------------------
-    node_Kd = node_rmsd[ordered_indx[-1]]
-    node_rmsd = None
     node_info = (-node_Kd, node, node_knn)
     return node_info
 
@@ -84,6 +96,15 @@ def exhaust_neighborhoods(traj, k):
     not_visited = set(range(N))                       # tracking unvisited
     # pool_lens = []
     # =========================================================================
+    # Initialize the vantage tree datastructure
+    # =========================================================================
+    indices = np.arange(0, traj.n_frames, dtype=np.int)
+    limit = round(int(N*0.1))
+    sample_size = round(limit/4)
+    indices = np.arange(0, traj.n_frames, dtype=np.int)
+    vptree = vnt.vpTree(limit, sample_size, traj)
+    vptree.getBothTrees(indices, traj)
+    # =========================================================================
     # Find node 'A' whose neighborhood will be exhausted
     # =========================================================================
     while True:
@@ -95,7 +116,8 @@ def exhaust_neighborhoods(traj, k):
         except IndexError:
             try:
                 A = not_visited.pop()
-                A_Kd, A, A_rmsd_knn = get_node_info(A, traj, k)
+                # A_Kd, A, A_rmsd_knn = get_node_info(A, traj, k)
+                A_Kd, A, A_rmsd_knn = get_node_info2(vptree, A, k)
                 Kd_arr[A] = -A_Kd
             # if all nodes visited, break & check exhausted heap --------------
             except KeyError:
@@ -112,7 +134,8 @@ def exhaust_neighborhoods(traj, k):
                 heapq.heappush(exhausted, (A_Kd, A))
                 break
             if B in not_visited:
-                B_info = get_node_info(B, traj, k)
+                # B_info = get_node_info(B, traj, k)
+                B_info = get_node_info2(vptree, B, k)
                 heapq.heappush(pool, B_info)
                 not_visited.remove(B)
                 B_Kd = -B_info[0]
@@ -157,60 +180,36 @@ def get_tree_side(root, nn_arr):
         root_side.update(expansion)
 
 
+#@profile
 def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
-    """
-    Join components rooted at the exhausted nodes to the main tree.
-
-    Parameters
-    ----------
-    exhausted : heapq
-        Heap containing tuples of (-Kd, node) for every node that could not
-        find a neighbor with a lower Kd.
-    Kd_arr : numpy.ndarray
-        Array containing the CoreDistance(x) for each x of the trajectory.
-    dist_arr : numpy.ndarray
-        Array of Minimum Reachability Distances (MRD) between the nodes of the
-        tree.
-    nn_arr : numpy.ndarray
-        Array of nearest neighbors forming edges. Indices correspond to each
-        node in the graph and the value correspond to the other node forming
-        a directed edge (index->value).
-    traj : mdtraj.Trajectory
-        Trajectory to analyze.
-
-    Returns
-    -------
-    dist_arr : numpy.ndarray
-        Updated array of Minimum Reachability Distances (MRD) between the nodes
-        of the tree.
-    nn_arr : numpy.ndarray
-        Updated array of nearest neighbors forming edges. Indices correspond to
-        each node in the graph and the value correspond to the other node
-        forming a directed edge (index->value).
-    """
-    N = Kd_arr.size
-    minim_Kd, minim_A = heapq.nlargest(1, exhausted)[0]
-    A_Kd_arr = np.zeros(N, np.float32)
-    reordered_exhausted = sorted(exhausted, key=lambda x: x[0], reverse=False)
-    for neg, A in reordered_exhausted:
-        if neg < minim_Kd:
-            node_side = get_tree_side(A, nn_arr)
-            A_Kd_arr.fill(-neg)
-            A_rms = md.rmsd(traj, traj, A, precentered=True)
-            A_rms[A] = np.inf
-            A_triple = np.array([A_Kd_arr, Kd_arr, A_rms])
-            A_minim_mdr = A_triple.max(axis=0)
-            candidates = A_minim_mdr.argsort()
-            for x in candidates:
-                if x not in node_side:
-                    nn_arr[A] = x
-                    dist_arr[A] = A_minim_mdr[x]
-                    break
+    # get disconnected components
+    topo_forest = get_otree_topology2(nn_arr)
+    components = np.zeros(Kd_arr.size, dtype=np.int)
+    iKd = np.ndarray(Kd_arr.size, dtype=np.float)
+    counter = it.count(1)
+    for k, node in exhausted:
+        component = get_node_side2(node, topo_forest)
+        components[np.fromiter(component, np.int)] = next(counter)
+    # join components
+    while exhausted:
+        kdneg, idx = heapq.heappop(exhausted)
+        kd = -kdneg
+        icomponent = components[idx]
+        iforest = np.where(components == icomponent)[0]
+        idx_rmsd = md.rmsd(traj, traj, idx, precentered=True)
+        iKd.fill(kd)
+        i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
+        i_mdr[iforest] = np.inf
+        acceptor = i_mdr.argmin()
+        distance = i_mdr[acceptor]
+        if distance == np.inf:
+            nn_arr[idx] = idx
+            dist_arr[idx] = 0
+            break
         else:
-            A_rms = md.rmsd(traj, traj, A, precentered=True)
-            nn_arr[A] = minim_A
-            dist_arr[A] = max(A_rms[minim_A], Kd_arr[A], minim_Kd)
-    dist_arr[minim_A] = 0
+            components[iforest] = components[acceptor]
+            dist_arr[idx] = distance
+            nn_arr[idx] = acceptor
     return dist_arr, nn_arr
 
 
