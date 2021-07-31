@@ -12,55 +12,55 @@ import numpy as np
 import mdtraj as md
 import networkx as nx
 
-import mdpack.vantage as vnt
 from mdpack.clusterize import get_node_side2, get_otree_topology2
 
+
 # @profile
-# def get_node_info(node, traj, k):
-#     """
-#     Get all the necessary information of a particular node.
+def get_node_info2(node, traj, k):
+    """
+    Get all the necessary information of a particular node.
 
-#     Parameters
-#     ----------
-#     node : int
-#         Node to analyze.
-#     traj : mdtraj.Trajectory
-#         Trajectory to analyze.
-#     k : int
-#         Number of nearest neighbors to calculate the CoreDistance(node).
+    Parameters
+    ----------
+    node : int
+        Node to analyze.
+    traj : mdtraj.Trajectory
+        Trajectory to analyze.
+    k : int
+        Number of nearest neighbors to calculate the CoreDistance(node).
 
-#     Returns
-#     -------
-#     node_info : tuple
-#         Tuple containing the necessary node information:
-#             node_info[0]: CoreDistance(node) (inverted for a "max heap")
-#             node_info[1]: node index
-#             node_info[2]: iterator of the rmsd knn of node
-#     """
-#     # Get RMSD(node), Kd(node) and knn sorted partition -----------------------
-#     # k += 1
-#     node_rmsd = md.rmsd(traj, traj, node, precentered=True)
-#     node_rmsd_part = np.argpartition(node_rmsd, k)[:k + 1]
-#     argsort_indx = node_rmsd[node_rmsd_part].argsort()
-#     ordered_indx = node_rmsd_part[argsort_indx]
-#     node_knn = iter(ordered_indx)
-#     next(node_knn)
-#     # Get CoreDistance(A) as Kd -----------------------------------------------
-#     node_Kd = node_rmsd[ordered_indx[-1]]
-#     node_rmsd = None
-#     node_info = (-node_Kd, node, node_knn)
-#     return node_info
-
-
-def get_node_info2(vptree, node, k):
-    node_Kd, kheap = vptree.query_node(node, k)
-    node_knn = (x[1] for x in sorted(kheap, key=lambda x: -x[0]))
+    Returns
+    -------
+    node_info : tuple
+        Tuple containing the necessary node information:
+            node_info[0]: CoreDistance(node) (inverted for a "max heap")
+            node_info[1]: node index
+            node_info[2]: iterator of the rmsd knn of node
+    """
+    # Get RMSD(node), Kd(node) and knn sorted partition -----------------------
+    # k += 1
+    node_rmsd = md.rmsd(traj, traj, node, precentered=True)
+    node_rmsd_part = np.argpartition(node_rmsd, k)[:k + 1]
+    argsort_indx = node_rmsd[node_rmsd_part].argsort()
+    ordered_indx = node_rmsd_part[argsort_indx]
+    node_knn = iter(ordered_indx)
     next(node_knn)
+    # Get CoreDistance(A) as Kd -----------------------------------------------
+    node_Kd = node_rmsd[ordered_indx[-1]]
+    node_rmsd = None
     node_info = (-node_Kd, node, node_knn)
     return node_info
 
 
-def exhaust_neighborhoods(traj, k, nsplits):
+# def get_node_info2(vptree, node, k):
+#     node_Kd, kheap = vptree.query_node(node, k)
+#     node_knn = (x[1] for x in sorted(kheap, key=lambda x: -x[0]))
+#     next(node_knn)
+#     node_info = (-node_Kd, node, node_knn)
+#     return node_info
+
+
+def exhaust_neighborhoods(traj, k):
     """
     Exhaust knn of nodes searching for minimal mrd in a dual-heap approach.
 
@@ -99,13 +99,13 @@ def exhaust_neighborhoods(traj, k, nsplits):
     # Initialize the vantage tree datastructure
     # =========================================================================
     indices = np.arange(0, traj.n_frames, dtype=np.int)
-    limit = N
-    for i in range(nsplits):
-        limit = int(limit / 2)
-    sample_size = int(round(limit / 5))
-    indices = np.arange(0, traj.n_frames, dtype=np.int)
-    vptree = vnt.vpTree(nsplits, sample_size, traj)
-    vptree.getBothTrees(indices, traj)
+    # limit = N
+    # for i in range(nsplits):
+    #     limit = int(limit / 2)
+    # sample_size = int(round(limit / 5))
+    # indices = np.arange(0, traj.n_frames, dtype=np.int)
+    # vptree = vnt.vpTree(nsplits, sample_size, traj)
+    # vptree.getBothTrees(indices, traj)
     # print(len(vptree.binTree.keys()) - 1 == len(vptree.bucketTree.keys())/2)
     # A = set(vptree.binTree.keys())
     # B = set(vptree.bucketTree.keys())
@@ -123,7 +123,7 @@ def exhaust_neighborhoods(traj, k, nsplits):
             try:
                 A = not_visited.pop()
                 # A_Kd, A, A_rmsd_knn = get_node_info(A, traj, k)
-                A_Kd, A, A_rmsd_knn = get_node_info2(vptree, A, k)
+                A_Kd, A, A_rmsd_knn = get_node_info2(A, traj, k)
                 Kd_arr[A] = -A_Kd
             # if all nodes visited, break & check exhausted heap --------------
             except KeyError:
@@ -141,7 +141,7 @@ def exhaust_neighborhoods(traj, k, nsplits):
                 break
             if B in not_visited:
                 # B_info = get_node_info(B, traj, k)
-                B_info = get_node_info2(vptree, B, k)
+                B_info = get_node_info2(B, traj, k)
                 heapq.heappush(pool, B_info)
                 not_visited.remove(B)
                 B_Kd = -B_info[0]
