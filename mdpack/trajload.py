@@ -79,7 +79,7 @@ def parse_arguments():
                        default='eom', choices=['eom', 'leaf'])
     clust.add_argument('-nsplits', action='store', dest='nsplits',
                        help='Number of binary splits for the Vantage Point Tree\
-                        [default: %(default)s]', type=str, required=False,
+                        [default: %(default)s]', type=int, required=False,
                        default=3)
     # Arguments: analysis -----------------------------------------------------
     out = parser.add_argument_group(title='Output options')
