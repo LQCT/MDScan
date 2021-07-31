@@ -211,17 +211,17 @@ class vpTree:
                         real_idx = self.bucketTree[traj]['real_indx']
                         vant_matrix_sel = self.slices[traj]
                         vector = self.vantage_matrix[:, q]
-                        if not prunable_by_trineq(vant_matrix_sel, vector, tau):
-                            q_vec2 = md.rmsd(subtraj, q_traj, q_idx, precentered=True)
-                            eta2 = q_vec2.argpartition(k)[:k + 1]
-                            dists2 = q_vec2[eta2]
-                            boolean = dists2 < tau
-                            candidates = [*zip(-dists2[boolean], real_idx[eta2][boolean])]
-                            for c in candidates:
-                                if c[0] > kheap[0][0]:
-                                    # heapq.heapreplace(kheap, c)
-                                    heapq.heappushpop(kheap, c)
-                                    tau = -kheap[0][0]
+                        # if not prunable_by_trineq(vant_matrix_sel, vector, tau):
+                        q_vec2 = md.rmsd(subtraj, q_traj, q_idx, precentered=True)
+                        eta2 = q_vec2.argpartition(k)[:k + 1]
+                        dists2 = q_vec2[eta2]
+                        boolean = dists2 < tau
+                        candidates = [*zip(-dists2[boolean], real_idx[eta2][boolean])]
+                        for c in candidates:
+                            if c[0] > kheap[0][0]:
+                                # heapq.heapreplace(kheap, c)
+                                heapq.heappushpop(kheap, c)
+                                tau = -kheap[0][0]
                     q_side = self.binTree[q_parent]['side']
             elif (q_side == 'R'):
                 if (q_dist2vp >= mu_parent + tau):
@@ -234,16 +234,16 @@ class vpTree:
                         real_idx = self.bucketTree[traj]['real_indx']
                         vant_matrix_sel = self.slices[traj]
                         vector = self.vantage_matrix[:, q]
-                        if not prunable_by_trineq(vant_matrix_sel, vector, tau):
-                            q_vec2 = md.rmsd(subtraj, q_traj, q_idx, precentered=True)
-                            eta2 = q_vec2.argpartition(k)[:k + 1]
-                            dists2 = q_vec2[eta2]
-                            boolean = dists2 < tau
-                            candidates = [*zip(-dists2[boolean], real_idx[eta2][boolean])]
-                            for c in candidates:
-                                if c[0] > kheap[0][0]:
-                                    # heapq.heapreplace(kheap, c)
-                                    heapq.heappushpop(kheap, c)
-                                    tau = -kheap[0][0]
+                        # if not prunable_by_trineq(vant_matrix_sel, vector, tau):
+                        q_vec2 = md.rmsd(subtraj, q_traj, q_idx, precentered=True)
+                        eta2 = q_vec2.argpartition(k)[:k + 1]
+                        dists2 = q_vec2[eta2]
+                        boolean = dists2 < tau
+                        candidates = [*zip(-dists2[boolean], real_idx[eta2][boolean])]
+                        for c in candidates:
+                            if c[0] > kheap[0][0]:
+                                # heapq.heapreplace(kheap, c)
+                                heapq.heappushpop(kheap, c)
+                                tau = -kheap[0][0]
                     q_side = self.binTree[q_parent]['side']
         return tau, kheap
