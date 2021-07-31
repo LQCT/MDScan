@@ -33,13 +33,12 @@ def prunable_by_trineq(vant_matrix_sel, vector, tau):
 class vpTree:
     """Vantage point tree datastructure to speed up RMSD computations"""
 
-    def __init__(self, buck_size, sample_size, traj):
-        self.buck_size = buck_size
+    def __init__(self, nsplits, sample_size, traj):
         self.bucketTree = dict()
         self.binTree = dict()
         self.traj = traj
         self.sample_size = sample_size
-        self.niters = self.getNiters(traj.n_frames, buck_size)
+        self.niters = nsplits
 
     def splitTraj(self, real_indices, subtraj, vpoints):
         # ---- get a better-than-random vpoint to split subtraj
@@ -71,14 +70,14 @@ class vpTree:
         L_info = (L_realindx, L_traj)
         return real_p, p_mu, R_info, L_info
 
-    def getNiters(self, total, buck_size):
-        level = -1
-        while True:
-            level += 1
-            total = round(total / 2)
-            if total <= buck_size:
-                break
-        return (2 ** (level) - 1)
+    # def getNiters(self, total, buck_size):
+    #     level = -1
+    #     while True:
+    #         level += 1
+    #         total = round(total / 2)
+    #         if total <= buck_size:
+    #             break
+    #     return (2 ** (level) - 1)
 
     def getBothTrees(self, real_indices, subtraj):
         # ---- construct the binary Tree and the associated buckets

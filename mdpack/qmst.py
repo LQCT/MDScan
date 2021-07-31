@@ -60,7 +60,7 @@ def get_node_info2(vptree, node, k):
     return node_info
 
 
-def exhaust_neighborhoods(traj, k):
+def exhaust_neighborhoods(traj, k, nsplits):
     """
     Exhaust knn of nodes searching for minimal mrd in a dual-heap approach.
 
@@ -99,10 +99,12 @@ def exhaust_neighborhoods(traj, k):
     # Initialize the vantage tree datastructure
     # =========================================================================
     indices = np.arange(0, traj.n_frames, dtype=np.int)
-    limit = round(int(N*0.1))
-    sample_size = round(limit/4)
+    limit = N
+    for i in range(nsplits):
+        limit = int(limit / 2)
+    sample_size = int(round(limit / 5))
     indices = np.arange(0, traj.n_frames, dtype=np.int)
-    vptree = vnt.vpTree(limit, sample_size, traj)
+    vptree = vnt.vpTree(nsplits, sample_size, traj)
     vptree.getBothTrees(indices, traj)
     # =========================================================================
     # Find node 'A' whose neighborhood will be exhausted
@@ -185,7 +187,6 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     # get disconnected components
     topo_forest = get_otree_topology2(nn_arr)
     components = np.zeros(Kd_arr.size, dtype=np.int)
-    iKd = np.ndarray(Kd_arr.size, dtype=np.float)
     counter = it.count(1)
     for k, node in exhausted:
         component = get_node_side2(node, topo_forest)
@@ -193,15 +194,15 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     # join components
     while exhausted:
         kdneg, idx = heapq.heappop(exhausted)
-        kd = -kdneg
         icomponent = components[idx]
-        iforest = np.where(components == icomponent)[0]
+        iforest = (components == icomponent).nonzero()[0]
         idx_rmsd = md.rmsd(traj, traj, idx, precentered=True)
-        iKd.fill(kd)
+        iKd = np.full(Kd_arr.size, -kdneg)
         i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
         i_mdr[iforest] = np.inf
         acceptor = i_mdr.argmin()
         distance = i_mdr[acceptor]
+
         if distance == np.inf:
             nn_arr[idx] = idx
             dist_arr[idx] = 0

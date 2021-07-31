@@ -30,8 +30,7 @@ def parse_arguments():
 
     """
     # Initializing argparse ---------------------------------------------------
-    desc = '\nMDScan: An efficient approach to the RMSD-Based HDBSCAN \
-        Clustering of long Molecular Dynamics'
+    desc = '\nMDScan: RMSD-Based HDBSCAN Clustering of Long Molecular Dynamics'
     parser = argparse.ArgumentParser(prog='mdscan',
                                      description=desc,
                                      add_help=True,
@@ -68,16 +67,20 @@ def parse_arguments():
     clust.add_argument('-min_samples', action='store', dest='k',
                        help='Number of k nearest neighbors to consider\
                        [default: %(default)s]',
-                       type=int, required=False, default=2, metavar='k')
+                       type=int, required=False, default=5, metavar='k')
     clust.add_argument('-min_clust_size', action='store',
                        dest='min_clust_size',
                        help='Minimum number of points in agrupations to be\
                        considered as clusters [default: %(default)s]',
-                       type=int, required=False, default=2, metavar='m')
+                       type=int, required=False, default=5, metavar='m')
     clust.add_argument('-clust_sel_met', action='store', dest='clust_sel_met',
                        help='Method used to select clusters from the condensed\
                        tree [default: %(default)s]', type=str, required=False,
                        default='eom', choices=['eom', 'leaf'])
+    clust.add_argument('-nsplits', action='store', dest='nsplits',
+                       help='Number of binary splits for the Vantage Point Tree\
+                        [default: %(default)s]', type=str, required=False,
+                       default=3)
     # Arguments: analysis -----------------------------------------------------
     out = parser.add_argument_group(title='Output options')
     out.add_argument('-odir', action='store', dest='outdir',
