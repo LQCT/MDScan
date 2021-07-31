@@ -106,6 +106,10 @@ def exhaust_neighborhoods(traj, k, nsplits):
     indices = np.arange(0, traj.n_frames, dtype=np.int)
     vptree = vnt.vpTree(nsplits, sample_size, traj)
     vptree.getBothTrees(indices, traj)
+    # print(len(vptree.binTree.keys()) - 1 == len(vptree.bucketTree.keys())/2)
+    # A = set(vptree.binTree.keys())
+    # B = set(vptree.bucketTree.keys())
+    # print(len(set.intersection(A, B)))
     # =========================================================================
     # Find node 'A' whose neighborhood will be exhausted
     # =========================================================================

@@ -30,7 +30,7 @@ start = time.time()
 #     # trajectory=folder + 'melvin.dcd',
 #     first=0, last=None, stride=1,
 #     selection='all', clust_sel_met='eom',
-#     nsplits=1, min_clust_size=5, k=5, outdir='./')
+#     nsplits=0, min_clust_size=5, k=5, outdir='./')
 
 # ++++ Initializing trajectory ++++++++++++++++++++++++++++++++++++++++++++++++
 args = trl.parse_arguments()
