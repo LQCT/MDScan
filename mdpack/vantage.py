@@ -93,7 +93,14 @@ class vpTree:
             if niter > self.niters:
                 R_real_idx, R_subtraj = R_info
                 L_real_idx, L_subtraj = L_info
-                RID, LID = R_real_idx[0], L_real_idx[0]
+                for i in R_real_idx:
+                    if i not in vpnts:
+                        RID = i
+                        break
+                for i in L_real_idx:
+                    if i not in vpnts:
+                        LID = i
+                        break
                 self.bucketTree.update({RID: {'P': vp, 'real_indx': R_real_idx,
                                               'side': 'R', 'bucket': R_subtraj}})
                 self.binTree[vp].update({'R': RID})
@@ -189,8 +196,8 @@ class vpTree:
         heapq.heapify(kheap)
         tau = -kheap[0][0]
         # calc real tau for comparison
-        # real_vec = md.rmsd(trajectory, trajectory, q, precentered=True)
-        # real_tau = real_vec[real_vec.argpartition(UI.K)[UI.K]]
+        # real_vec = md.rmsd(self.traj, self.traj, q, precentered=True)
+        # real_tau = real_vec[real_vec.argpartition(k)[k]]
         for q_parent, mu_parent in q_ancestors:
             q_dist2vp = self.distances[q_parent][q]
             if (q_side == 'L'):
@@ -212,7 +219,8 @@ class vpTree:
                             candidates = [*zip(-dists2[boolean], real_idx[eta2][boolean])]
                             for c in candidates:
                                 if c[0] > kheap[0][0]:
-                                    heapq.heapreplace(kheap, c)
+                                    # heapq.heapreplace(kheap, c)
+                                    heapq.heappushpop(kheap, c)
                                     tau = -kheap[0][0]
                     q_side = self.binTree[q_parent]['side']
             elif (q_side == 'R'):
@@ -234,7 +242,8 @@ class vpTree:
                             candidates = [*zip(-dists2[boolean], real_idx[eta2][boolean])]
                             for c in candidates:
                                 if c[0] > kheap[0][0]:
-                                    heapq.heapreplace(kheap, c)
+                                    # heapq.heapreplace(kheap, c)
+                                    heapq.heappushpop(kheap, c)
                                     tau = -kheap[0][0]
                     q_side = self.binTree[q_parent]['side']
         return tau, kheap

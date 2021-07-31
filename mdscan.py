@@ -22,14 +22,15 @@ start = time.time()
 # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # from argparse import Namespace
 # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-# # folder = '/home/rga/BSProject/runners/trajs/trajs/'
+# folder = '/home/rga/BSProject/runners/trajs/trajs/'
 # args = Namespace(
 #     topology=folder + 'aligned_tau.pdb',
 #     trajectory=folder + 'aligned_original_tau_6K.dcd',
 #     # topology=folder + 'melvin.pdb',
 #     # trajectory=folder + 'melvin.dcd',
 #     first=0, last=None, stride=1,
-#     selection='name CA', clust_sel_met='eom', min_clust_size=2, k=2, outdir='./')
+#     selection='all', clust_sel_met='eom',
+#     nsplits=1, min_clust_size=5, k=5, outdir='./')
 
 # ++++ Initializing trajectory ++++++++++++++++++++++++++++++++++++++++++++++++
 args = trl.parse_arguments()
