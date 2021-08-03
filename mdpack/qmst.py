@@ -216,12 +216,12 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
         icomponent = components[idx]
         iforest = (components == icomponent).nonzero()[0]
         idx_rmsd = md.rmsd(traj, traj, idx, precentered=True)
-        # iKd = np.full(Kd_arr.size, -kdneg)
-        # i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
-        # i_mdr[iforest] = np.inf
-        # acceptor = i_mdr.argmin()
-        # distance = i_mdr[acceptor]
-        acceptor, distance = get_acceptor(Kd_arr, idx_rmsd, iforest)
+        iKd = np.full(Kd_arr.size, -kdneg)
+        i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
+        i_mdr[iforest] = np.inf
+        acceptor = i_mdr.argmin()
+        distance = i_mdr[acceptor]
+        # acceptor, distance = get_acceptor(Kd_arr, idx_rmsd, iforest)
         if distance == np.inf:
             nn_arr[idx] = idx
             dist_arr[idx] = 0
