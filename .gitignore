@@ -8,3 +8,4 @@ docs/mdscan_old.py
 *__pycache__
 *.graphml
 numbaTesting.py
+.directory
