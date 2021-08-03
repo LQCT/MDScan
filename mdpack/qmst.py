@@ -11,6 +11,7 @@ import itertools as it
 import numpy as np
 import mdtraj as md
 import networkx as nx
+from numba import jit
 
 import mdpack.vantage as vnt
 from mdpack.clusterize import get_node_side2, get_otree_topology2
@@ -50,6 +51,20 @@ from mdpack.clusterize import get_node_side2, get_otree_topology2
 #     node_rmsd = None
 #     node_info = (-node_Kd, node, node_knn)
 #     return node_info
+
+
+@jit(nopython=True, fastmath=True)
+def get_acceptor(Kd_arr, idx_rmsd, iforest):
+    Kd_arr[iforest] = np.inf
+    idx_rmsd[iforest] = np.inf
+    min_found = np.inf
+    for i in range(Kd_arr.size):
+        kd_val = Kd_arr[i]
+        rms_val = idx_rmsd[i]
+        if (kd_val < min_found) and (rms_val < min_found):
+            acceptor = i
+            min_found = max(kd_val, rms_val)
+    return acceptor, min_found
 
 
 def get_node_info2(vptree, node, k):
@@ -190,23 +205,23 @@ def get_tree_side(root, nn_arr):
 def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     # get disconnected components
     topo_forest = get_otree_topology2(nn_arr)
-    components = np.zeros(Kd_arr.size, dtype=np.int)
+    components = np.zeros(Kd_arr.size, dtype=int)
     counter = it.count(1)
     for k, node in exhausted:
         component = get_node_side2(node, topo_forest)
-        components[np.fromiter(component, np.int)] = next(counter)
+        components[np.fromiter(component, int)] = next(counter)
     # join components
     while exhausted:
         kdneg, idx = heapq.heappop(exhausted)
         icomponent = components[idx]
         iforest = (components == icomponent).nonzero()[0]
         idx_rmsd = md.rmsd(traj, traj, idx, precentered=True)
-        iKd = np.full(Kd_arr.size, -kdneg)
-        i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
-        i_mdr[iforest] = np.inf
-        acceptor = i_mdr.argmin()
-        distance = i_mdr[acceptor]
-
+        # iKd = np.full(Kd_arr.size, -kdneg)
+        # i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
+        # i_mdr[iforest] = np.inf
+        # acceptor = i_mdr.argmin()
+        # distance = i_mdr[acceptor]
+        acceptor, distance = get_acceptor(Kd_arr, idx_rmsd, iforest)
         if distance == np.inf:
             nn_arr[idx] = idx
             dist_arr[idx] = 0

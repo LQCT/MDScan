@@ -20,14 +20,14 @@ start = time.time()
 # >>>> FIRST PART: qMST CONSTRUCTION                                          #
 # =========================================================================== #
 # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# from argparse import Namespace
+from argparse import Namespace
 # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
 # folder = '/home/rga/BSProject/runners/trajs/trajs/'
 # args = Namespace(
-#     topology=folder + 'aligned_tau.pdb',
-#     trajectory=folder + 'aligned_original_tau_6K.dcd',
-#     # topology=folder + 'melvin.pdb',
-#     # trajectory=folder + 'melvin.dcd',
+#     # topology=folder + 'aligned_tau.pdb',
+#     # trajectory=folder + 'aligned_original_tau_6K.dcd',
+#     topology=folder + 'melvin.pdb',
+#     trajectory=folder + 'melvin.dcd',
 #     first=0, last=None, stride=1,
 #     selection='all', clust_sel_met='eom',
 #     nsplits=0, min_clust_size=5, k=5, outdir='./')
