@@ -12,8 +12,24 @@ from collections import defaultdict, deque
 import numpy as np
 
 
-
 def get_otree_topology2(nn_arr):
+    """
+    Get the oriented relationship of the spanning tree encoded in the nearest
+    neighbors array.
+
+    Parameters
+    ----------
+    nn_arr : numpy.ndarray
+        Array of nearest neighbors forming edges. Indices correspond to each
+        node in the graph and the value correspond to the other node forming
+        a directed edge (index->value).
+
+    Returns
+    -------
+    topo_forest : TYPE
+        DESCRIPTION.
+
+    """
     topo_forest = defaultdict(set)
     for i, x in enumerate(nn_arr):
         topo_forest[x].add(i)
@@ -22,7 +38,7 @@ def get_otree_topology2(nn_arr):
 
 def cut_tree(A, B, forest_top):
     """
-    Cut one of the tree topologies into two sub-trees.
+    Cut a tree into two sub-trees. Destructive function on forest_top.
 
     Parameters
     ----------
@@ -44,6 +60,24 @@ def cut_tree(A, B, forest_top):
 
 
 def get_node_side2(active_node, topo_forest):
+    """
+    Get from topo_forest the component of nodes having an oriented path to
+    active_node.
+
+    Parameters
+    ----------
+    active_node : int
+        The node where all others point to.
+    topo_forest : dict
+        Encoding of the oriented tree topology. Dict keys correspond to nodes
+        while dict values (sets) inform nodes pointing to key.
+
+    Returns
+    -------
+    side_X : set
+        Component of nodes pointing to active_node.
+
+    """
     side_X = set([active_node])
     iterator = deque([active_node])
     while iterator:
@@ -55,6 +89,29 @@ def get_node_side2(active_node, topo_forest):
 
 
 def prune_qMST2(nn_arr, dist_arr, topo_forest, mpoints):
+    """
+    HDBSCAN procedure to prune the mutual reachability distances'
+    Minimum Spanning Tree. See arXiv:1705.07321v2.
+
+    Parameters
+    ----------
+    nn_arr : TYPE
+        DESCRIPTION.
+    dist_arr : TYPE
+        DESCRIPTION.
+    topo_forest : TYPE
+        DESCRIPTION.
+    mpoints : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    clusters : TYPE
+        DESCRIPTION.
+    clust_array : TYPE
+        DESCRIPTION.
+
+    """
     # Clusters tracking machinery
     N = dist_arr.size
     cluster_id = it.count(start=1, step=2)
