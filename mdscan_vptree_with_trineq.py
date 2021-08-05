@@ -20,21 +20,21 @@ start = time.time()
 # >>>> FIRST PART: qMST CONSTRUCTION                                          #
 # =========================================================================== #
 # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# from argparse import Namespace
-# # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-# folder = '/home/rga/BSProject/runners/trajs/trajs/'
-# args = Namespace(
-#     # topology=folder + 'aligned_tau.pdb',
-#     # trajectory=folder + 'aligned_original_tau_6K.dcd',
-#     topology=folder + 'melvin.pdb',
-#     trajectory=folder + 'melvin.dcd',
-#     first=0, last=None, stride=1,
-#     selection='all', clust_sel_met='eom',
-#     selection='name CA', clust_sel_met='eom',
-#     nsplits=3, min_clust_size=5, k=5, outdir='./')
+from argparse import Namespace
+# folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
+folder = '/home/rga/BSProject/runners/trajs/trajs/'
+args = Namespace(
+    # topology=folder + 'aligned_tau.pdb',
+    # trajectory=folder + 'aligned_original_tau_6K.dcd',
+    topology=folder + 'melvin.pdb',
+    trajectory=folder + 'melvin.dcd',
+    first=0, last=None, stride=1,
+    # selection='all', clust_sel_met='eom',
+    selection='name CA', clust_sel_met='eom',
+    nsplits=3, min_clust_size=5, k=5, outdir='./')
 
 # ++++ Initializing trajectory ++++++++++++++++++++++++++++++++++++++++++++++++
-args = trl.parse_arguments()
+# args = trl.parse_arguments()
 np.seterr(divide='ignore', invalid='ignore')             # Avoid division error
 traj = trl.load_raw_traj(args.trajectory, trl.valid_trajs, args.topology)
 traj = trl.shrink_traj_selection(traj, args.selection)
