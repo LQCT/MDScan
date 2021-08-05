@@ -18,9 +18,9 @@ import numpy_indexed as npi
 @jit(nopython=True, fastmath=True)
 def prunable_by_trineq(vant_matrix_sel, vector, tau):
     R, C = vant_matrix_sel.shape
-    for raw in range(R):
+    for row in range(R):
         atleast = False
-        for i, x in enumerate(vant_matrix_sel[raw]):
+        for i, x in enumerate(vant_matrix_sel[row]):
             diff = x - vector[i]
             absol = abs(diff)
             if absol > tau:
@@ -183,6 +183,7 @@ class vpTree:
             sliced = dist_matrix[:, idxs].T
             slices.update({x: sliced})
         self.slices = slices
+
         # ---- set the buckets
         for x in self.bucketTree:
             mask = self.bucketTree[x]['real_indx']
