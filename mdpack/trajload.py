@@ -27,7 +27,6 @@ def parse_arguments():
     -------
     user_inputs : parser.argparse
         namespace with user input arguments.
-
     """
     # Initializing argparse ---------------------------------------------------
     desc = '\nMDScan: RMSD-Based HDBSCAN Clustering of Long Molecular Dynamics'
@@ -78,7 +77,7 @@ def parse_arguments():
                        tree [default: %(default)s]', type=str, required=False,
                        default='eom', choices=['eom', 'leaf'])
     clust.add_argument('-nsplits', action='store', dest='nsplits',
-                       help='Number of binary splits for the Vantage Point Tree\
+                       help='Number of binary splits to perform on the Vantage Point Tree\
                         [default: %(default)s]', type=int, required=False,
                        default=3)
     # Arguments: analysis -----------------------------------------------------
