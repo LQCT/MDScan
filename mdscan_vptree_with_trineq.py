@@ -55,9 +55,9 @@ print(dist_arr.sum())
 
 # ++++ Checks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # !!! to pass this check, you must set to -1 in nn_arr the argmin of dist_arr
-tree = qmst.check_tree(N1, nn_arr, dist_arr)
-cycl = nx.find_cycle(tree)
-connected = nx.is_connected(tree)
+# tree = qmst.check_tree(N1, nn_arr, dist_arr)
+# cycl = nx.find_cycle(tree)
+# connected = nx.is_connected(tree)
 mst_exact2 = qmst.get_prim_mst2(traj, Kd_arr)
 
 
@@ -86,9 +86,9 @@ final_array = clt.get_final_clusters(selected, reclusters, ctree,
 # =========================================================================== #
 # ++++ saving python objects as pickle ++++++++++++++++++++++++++++++++++++++++
 basename = os.path.basename(args.topology).split('.')[0]
-pickname = '{}_mdscan.pick'.format(basename)
+pickname = '{}_mdscan_B1.pick'.format(basename)
 anl.pickle_to_file(
-    (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array),
+    (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array, D1, mst_exact2),
     pickname)
 
 # ++++ saving VMD visualization script ++++++++++++++++++++++++++++++++++++++++
