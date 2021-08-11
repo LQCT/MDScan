@@ -11,8 +11,23 @@ import itertools as it
 import numpy as np
 import mdtraj as md
 import networkx as nx
-
+from numba import jit
 from mdpack.clusterize import get_node_side2, get_otree_topology2
+
+
+@jit(nopython=True, fastmath=True)
+def get_acceptor(Kd_arr, idx_rmsd, iforest):
+    Kd_arr1 = Kd_arr.copy()
+    Kd_arr1[iforest] = np.inf
+    idx_rmsd[iforest] = np.inf
+    min_found = np.inf
+    for i in range(Kd_arr1.size):
+        kd_val = Kd_arr1[i]
+        rms_val = idx_rmsd[i]
+        if (kd_val < min_found) and (rms_val < min_found):
+            acceptor = i
+            min_found = max(kd_val, rms_val)
+    return acceptor, min_found
 
 
 # @profile
@@ -201,11 +216,12 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
         icomponent = components[idx]
         iforest = (components == icomponent).nonzero()[0]
         idx_rmsd = md.rmsd(traj, traj, idx, precentered=True)
-        iKd = np.full(Kd_arr.size, -kdneg)
-        i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
-        i_mdr[iforest] = np.inf
-        acceptor = i_mdr.argmin()
-        distance = i_mdr[acceptor]
+        # iKd = np.full(Kd_arr.size, -kdneg)
+        # i_mdr = np.array([iKd, Kd_arr, idx_rmsd]).max(axis=0)
+        # i_mdr[iforest] = np.inf
+        # acceptor = i_mdr.argmin()
+        # distance = i_mdr[acceptor]
+        acceptor, distance = get_acceptor(Kd_arr, idx_rmsd, iforest)
 
         if distance == np.inf:
             nn_arr[idx] = idx
