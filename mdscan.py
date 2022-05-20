@@ -21,8 +21,7 @@ start = time.time()
 # =========================================================================== #
 # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # from argparse import Namespace
-# # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-# folder = '/home/rga/BSProject/runners/trajs/trajs/'
+# folder = '/home/roy.gonzalez-aleman/rprojects/BSProject/05-oldies/bitsuite/examples/'
 # args = Namespace(
 #     topology=folder + 'aligned_tau.pdb',
 #     trajectory=folder + 'aligned_original_tau_6K.dcd',
@@ -42,16 +41,16 @@ N1 = traj.n_frames
 traj = trl.shrink_traj_range(args.first, args.last, args.stride, traj)
 N2 = traj.n_frames
 traj.center_coordinates()
+print('\n[1/4] Parsing of trajectory completed.')
 
 # # ++++ Exhausting neighborhoods +++++++++++++++++++++++++++++++++++++++++++++
 Kd_arr, dist_arr, nn_arr, exhausted, D1 = qmst.exhaust_neighborhoods(
     traj, args.k, args.nsplits)
-print(dist_arr.sum())
+
 # ++++ Joining exhausted nodes ++++++++++++++++++++++++++++++++++++++++++++++++
 dist_arr, nn_arr, exh_ord = qmst.join_exhausted(
     exhausted, Kd_arr, dist_arr, nn_arr, traj)
-print(dist_arr.sum())
-
+print('\n[2/4] Construction of the quasi-Minimum Spanning Tree completed.')
 
 # ++++ Checks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # !!! to pass this check, you must set to -1 in nn_arr the argmin of dist_arr
@@ -79,19 +78,25 @@ selected = [x for x in reclusters if reclusters[x]['delta'] == 1]
 final_array = clt.get_final_clusters(selected, reclusters, ctree,
                                      orig_clust_array, args.clust_sel_met,
                                      include_children=True)
+print('\n[3/4] MDSCAN clustering completed.')
 
 
 # =========================================================================== #
 # >>>> Third PART: Outputs & Reports                                          #
 # =========================================================================== #
 # ++++ saving python objects as pickle ++++++++++++++++++++++++++++++++++++++++
-basename = os.path.basename(args.topology).split('.')[0]
-pickname = '{}_mdscan_B2.pick'.format(basename)
-anl.pickle_to_file(
-    (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array, D1, exh_ord),
-    pickname)
+out_dir = os.path.abspath(args.outdir)
+basename = os.path.basename(args.trajectory).split('.')[0]
+# pickname = '{}.pick'.format(basename)
+# anl.pickle_to_file((Kd_arr, dist_arr, nn_arr, exhausted, selected,
+# final_array, D1, exh_ord), pickname)
 
 # ++++ saving VMD visualization script ++++++++++++++++++++++++++++++++++++++++
+os.makedirs(out_dir, exist_ok=True)
 anl.to_VMD(args.topology, args.first, args.last, N1, args.stride, final_array)
+
+print('\n[4/4] Output files writing completed.')
+
+
 print('\n\nMDSCAN normal termination. {} clusters found in {:3.2f} secs.'
       .format(final_array.max(), time.time() - start))
