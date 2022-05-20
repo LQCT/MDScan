@@ -9,3 +9,4 @@ docs/mdscan_old.py
 *.graphml
 numbaTesting.py
 .directory
+docs

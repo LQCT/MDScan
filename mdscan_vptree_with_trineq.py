@@ -20,18 +20,18 @@ start = time.time()
 # >>>> FIRST PART: qMST CONSTRUCTION                                          #
 # =========================================================================== #
 # ++++ Debugging ? ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#from argparse import Namespace
-# folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
-#folder = '/home/rga/BSProject/runners/trajs/trajs/'
-#args = Namespace(
-    # topology=folder + 'aligned_tau.pdb',
-    # trajectory=folder + 'aligned_original_tau_6K.dcd',
-    #topology=folder + 'melvin.pdb',
-    #trajectory=folder + 'melvin.dcd',
-    #first=0, last=None, stride=1,
-    # selection='all', clust_sel_met='eom',
-    #selection='name CA', clust_sel_met='eom',
-    #nsplits=3, min_clust_size=5, k=5, outdir='./')
+# from argparse import Namespace
+# # folder = '/home/rga/BSProject/05-oldies/bitsuite/examples/'
+# folder = '/home/rga/BSProject/runners/trajs/trajs/'
+# args = Namespace(
+#     topology=folder + 'aligned_tau.pdb',
+#     trajectory=folder + 'aligned_original_tau_6K.dcd',
+#     # topology=folder + 'melvin.pdb',
+#     # trajectory=folder + 'melvin.dcd',
+#     first=0, last=None, stride=1,
+#     selection='all', clust_sel_met='eom',
+#     # selection='name CA', clust_sel_met='eom',
+#     nsplits=3, min_clust_size=5, k=5, outdir='./')
 
 # ++++ Initializing trajectory ++++++++++++++++++++++++++++++++++++++++++++++++
 args = trl.parse_arguments()
@@ -44,17 +44,22 @@ N2 = traj.n_frames
 traj.center_coordinates()
 
 # # ++++ Exhausting neighborhoods +++++++++++++++++++++++++++++++++++++++++++++
-Kd_arr, dist_arr, nn_arr, exhausted = qmst.exhaust_neighborhoods(traj, args.k,
-                                                                 args.nsplits)
-
+Kd_arr, dist_arr, nn_arr, exhausted, D1 = qmst.exhaust_neighborhoods(
+    traj, args.k, args.nsplits)
+print(dist_arr.sum())
 # ++++ Joining exhausted nodes ++++++++++++++++++++++++++++++++++++++++++++++++
-dist_arr, nn_arr = qmst.join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr,
-                                       traj)
+dist_arr, nn_arr, exh_ord = qmst.join_exhausted(
+    exhausted, Kd_arr, dist_arr, nn_arr, traj)
+print(dist_arr.sum())
+
 
 # ++++ Checks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # !!! to pass this check, you must set to -1 in nn_arr the argmin of dist_arr
 # tree = qmst.check_tree(N1, nn_arr, dist_arr)
-# extc = qmst.get_exact_MST(N1, traj, Kd_arr, 'prim')
+# cycl = nx.find_cycle(tree)
+# connected = nx.is_connected(tree)
+# network_exact = qmst.get_exact_MST(N1, traj, Kd_arr)
+# mst_exact2 = qmst.get_prim_set(traj, Kd_arr)
 
 # =========================================================================== #
 # >>>> SECOND PART: CLUSTERS EXTRACTION                                       #
@@ -81,9 +86,9 @@ final_array = clt.get_final_clusters(selected, reclusters, ctree,
 # =========================================================================== #
 # ++++ saving python objects as pickle ++++++++++++++++++++++++++++++++++++++++
 basename = os.path.basename(args.topology).split('.')[0]
-pickname = '{}_mdscan.pick'.format(basename)
+pickname = '{}_mdscan_B2.pick'.format(basename)
 anl.pickle_to_file(
-    (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array),
+    (Kd_arr, dist_arr, nn_arr, exhausted, selected, final_array, D1, exh_ord),
     pickname)
 
 # ++++ saving VMD visualization script ++++++++++++++++++++++++++++++++++++++++
