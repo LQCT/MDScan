@@ -9,3 +9,6 @@ docs/mdscan_old.py
 numbaTesting.py
 .directory
 docs
+build/*
+dist/*
+*.egg*
