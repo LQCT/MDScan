@@ -7,12 +7,12 @@ Created on Sun Jul 25 19:25:18 2021
 """
 import heapq
 import itertools as it
-from collections import deque
-from bitarray import bitarray as ba
+# from collections import deque
+# from bitarray import bitarray as ba
 
 import numpy as np
 import mdtraj as md
-import networkx as nx
+# import networkx as nx
 from numba import jit
 
 import mdpack.vantage as vnt
@@ -236,177 +236,177 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     return dist_arr, nn_arr, exhausted_ordered
 
 
-def check_tree(N, nn_arr, dist_arr):
-    """
-    Check that neighbors array represents a tree.
+# def check_tree(N, nn_arr, dist_arr):
+#     """
+#     Check that neighbors array represents a tree.
 
-    Parameters
-    ----------
-    N : int
-        Number of frames in trajectory.
-    nn_arr : numpy.ndarray
-        Array of nearest neighbors forming edges. Indices correspond to each
-        node in the graph and the value correspond to the other node forming
-        a directed edge (index->value).
-    dist_arr : numpy.ndarray
-        Array of Minimum Reachability Distances (MRD) between the nodes of the
-        tree.
+#     Parameters
+#     ----------
+#     N : int
+#         Number of frames in trajectory.
+#     nn_arr : numpy.ndarray
+#         Array of nearest neighbors forming edges. Indices correspond to each
+#         node in the graph and the value correspond to the other node forming
+#         a directed edge (index->value).
+#     dist_arr : numpy.ndarray
+#         Array of Minimum Reachability Distances (MRD) between the nodes of the
+#         tree.
 
-    Returns
-    -------
-    graph : nx.Graph()
-        The graph represented by the neighbors array.
+#     Returns
+#     -------
+#     graph : nx.Graph()
+#         The graph represented by the neighbors array.
 
-    """
-    graph = nx.Graph()
-    graph.add_nodes_from(range(0, N))
-    for i, x in enumerate(nn_arr):
-        graph.add_edge(i, x, weight=dist_arr[i])
-    return graph
-
-
-def get_exact_MST(N, traj, Kd_arr):
-    """
-    Get the exact MST from the complete graph of MDR (with networkx).
-
-    Parameters
-    ----------
-    N : int
-        Number of frames in trajectory.
-    traj : mdtraj.Trajectory
-        Trajectory to analyze.
-    Kd_arr : numpy.ndarray
-        Array containing the CoreDistance(x) for each x of the trajectory.
-    algorithm : str
-        Which algorithm to use for the 'exact' computation of MST.
-
-    Returns
-    -------
-    total_weights : float
-        Sum of edge's weights for the MST.
-
-    """
-    # Add nodes and lower triangle edges to graph -----------------------------
-    graph = nx.Graph()
-    graph.add_nodes_from(range(0, N))
-    # vault = []
-    for i in range(N):
-        node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
-        for j, d in enumerate(node_rmsd):
-            if i == j:
-                print('equals ', i, j)
-            # vault.append((i, j))
-            mdr_ij = max([Kd_arr[i], Kd_arr[j], d])
-            graph.add_edge(i, j, weight=mdr_ij)
-    # Get the minimum spanning tree and the weights ---------------------------
-    t = nx.algorithms.tree.minimum_spanning_tree(graph, algorithm='kruskal')
-    weights = []
-    for x, y in t.edges():
-        weights.append(t.get_edge_data(x, y)['weight'])
-    total_weights = sum(weights)
-    return t, total_weights
+#     """
+#     graph = nx.Graph()
+#     graph.add_nodes_from(range(0, N))
+#     for i, x in enumerate(nn_arr):
+#         graph.add_edge(i, x, weight=dist_arr[i])
+#     return graph
 
 
-def get_prim_mst(traj, Kd_arr):
-    # reserve the space for i, j, and w arrays
-    N = traj.n_frames
-    M = int(N * (N - 1) / 2)
-    i_array = np.zeros(M, dtype=np.int32)
-    j_array = np.zeros(M, dtype=np.int32)
-    w_array = np.zeros(M, dtype=np.float32)
-    # get mrd matrix
-    counter = it.count()
-    for i in range(N):
-        node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
-        for j, d in enumerate(node_rmsd):
-            c = next(counter)
-            i_array[c] = i
-            j_array[c] = j
-            w_array[c] = max([d, Kd_arr[i], Kd_arr[j]])
-    # order edges increasingly by weight
-    order = w_array.argsort()
-    w_array = w_array[order]
-    i_array = i_array[order]
-    j_array = j_array[order]
-    del(order)
-    # define auxiliar binary vectors
-    i_bit = np.zeros(M, bool)
-    j_bit = np.zeros(M, bool)
-    # Prim MST procedure
-    edges = []
-    last_added = i_array[0]
-    while True:
-        i_bit[(i_array == last_added)] = True
-        j_bit[(j_array == last_added)] = True
-        try:
-            last_added, insider, pos = find_01(i_bit, j_bit, i_array, j_array)
-        except TypeError:
-            break
-        edges.append((last_added, insider, w_array[pos]))
-    # Create the networkx graph
-    g = nx.Graph()
-    g.add_weighted_edges_from(edges)
-    weight = sum([x[2] for x in edges])
-    del edges
-    print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
-    try:
-        cycle = nx.find_cycle(g)
-    except:
-        cycle = 'Not cycles my Lord !'
-    print('May I see your cycles ?: {}'.format(cycle))
-    print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
-    print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
-    return g
+# def get_exact_MST(N, traj, Kd_arr):
+#     """
+#     Get the exact MST from the complete graph of MDR (with networkx).
+
+#     Parameters
+#     ----------
+#     N : int
+#         Number of frames in trajectory.
+#     traj : mdtraj.Trajectory
+#         Trajectory to analyze.
+#     Kd_arr : numpy.ndarray
+#         Array containing the CoreDistance(x) for each x of the trajectory.
+#     algorithm : str
+#         Which algorithm to use for the 'exact' computation of MST.
+
+#     Returns
+#     -------
+#     total_weights : float
+#         Sum of edge's weights for the MST.
+
+#     """
+#     # Add nodes and lower triangle edges to graph -----------------------------
+#     graph = nx.Graph()
+#     graph.add_nodes_from(range(0, N))
+#     # vault = []
+#     for i in range(N):
+#         node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
+#         for j, d in enumerate(node_rmsd):
+#             if i == j:
+#                 print('equals ', i, j)
+#             # vault.append((i, j))
+#             mdr_ij = max([Kd_arr[i], Kd_arr[j], d])
+#             graph.add_edge(i, j, weight=mdr_ij)
+#     # Get the minimum spanning tree and the weights ---------------------------
+#     t = nx.algorithms.tree.minimum_spanning_tree(graph, algorithm='kruskal')
+#     weights = []
+#     for x, y in t.edges():
+#         weights.append(t.get_edge_data(x, y)['weight'])
+#     total_weights = sum(weights)
+#     return t, total_weights
+
+
+# def get_prim_mst(traj, Kd_arr):
+#     # reserve the space for i, j, and w arrays
+#     N = traj.n_frames
+#     M = int(N * (N - 1) / 2)
+#     i_array = np.zeros(M, dtype=np.int32)
+#     j_array = np.zeros(M, dtype=np.int32)
+#     w_array = np.zeros(M, dtype=np.float32)
+#     # get mrd matrix
+#     counter = it.count()
+#     for i in range(N):
+#         node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
+#         for j, d in enumerate(node_rmsd):
+#             c = next(counter)
+#             i_array[c] = i
+#             j_array[c] = j
+#             w_array[c] = max([d, Kd_arr[i], Kd_arr[j]])
+#     # order edges increasingly by weight
+#     order = w_array.argsort()
+#     w_array = w_array[order]
+#     i_array = i_array[order]
+#     j_array = j_array[order]
+#     del(order)
+#     # define auxiliar binary vectors
+#     i_bit = np.zeros(M, bool)
+#     j_bit = np.zeros(M, bool)
+#     # Prim MST procedure
+#     edges = []
+#     last_added = i_array[0]
+#     while True:
+#         i_bit[(i_array == last_added)] = True
+#         j_bit[(j_array == last_added)] = True
+#         try:
+#             last_added, insider, pos = find_01(i_bit, j_bit, i_array, j_array)
+#         except TypeError:
+#             break
+#         edges.append((last_added, insider, w_array[pos]))
+#     # Create the networkx graph
+#     g = nx.Graph()
+#     g.add_weighted_edges_from(edges)
+#     weight = sum([x[2] for x in edges])
+#     del edges
+#     print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
+#     try:
+#         cycle = nx.find_cycle(g)
+#     except:
+#         cycle = 'Not cycles my Lord !'
+#     print('May I see your cycles ?: {}'.format(cycle))
+#     print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
+#     print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
+#     return g
 
 
 
-def get_prim_mst2(traj, Kd_arr):
-    # reserve the space for i, j, and w arrays
-    N = traj.n_frames
-    M = int(N * (N - 1) / 2)
-    i_array = np.zeros(M, dtype=np.int32)
-    j_array = np.zeros(M, dtype=np.int32)
-    w_array = np.zeros(M, dtype=np.float32)
-    # get mrd matrix
-    startCount = 0
-    for i in range(N):
-        node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
-        startCount = iterate_array(i, node_rmsd, Kd_arr, startCount,
-                                   i_array, j_array, w_array)
-    # order edges increasingly by weight
-    order = w_array.argsort()
-    w_array = w_array[order]
-    i_array = i_array[order]
-    j_array = j_array[order]
-    del(order)
-    # define auxiliar binary vectors
-    i_bit = np.zeros(M, bool)
-    j_bit = np.zeros(M, bool)
-    # Prim MST procedure
-    edges = []
-    last_added = i_array[0]
-    while True:
-        i_bit[(i_array == last_added)] = True
-        j_bit[(j_array == last_added)] = True
-        try:
-            last_added, insider, pos = find_01(i_bit, j_bit, i_array, j_array)
-        except TypeError:
-            break
-        edges.append((last_added, insider, w_array[pos]))
-    # Create the networkx graph
-    g = nx.Graph()
-    g.add_weighted_edges_from(edges)
-    weight = sum([x[2] for x in edges])
-    del edges
-    print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
-    try:
-        cycle = nx.find_cycle(g)
-    except:
-        cycle = 'Not cycles my Lord !'
-    print('May I see your cycles ?: {}'.format(cycle))
-    print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
-    print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
-    return g
+# def get_prim_mst2(traj, Kd_arr):
+#     # reserve the space for i, j, and w arrays
+#     N = traj.n_frames
+#     M = int(N * (N - 1) / 2)
+#     i_array = np.zeros(M, dtype=np.int32)
+#     j_array = np.zeros(M, dtype=np.int32)
+#     w_array = np.zeros(M, dtype=np.float32)
+#     # get mrd matrix
+#     startCount = 0
+#     for i in range(N):
+#         node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
+#         startCount = iterate_array(i, node_rmsd, Kd_arr, startCount,
+#                                    i_array, j_array, w_array)
+#     # order edges increasingly by weight
+#     order = w_array.argsort()
+#     w_array = w_array[order]
+#     i_array = i_array[order]
+#     j_array = j_array[order]
+#     del(order)
+#     # define auxiliar binary vectors
+#     i_bit = np.zeros(M, bool)
+#     j_bit = np.zeros(M, bool)
+#     # Prim MST procedure
+#     edges = []
+#     last_added = i_array[0]
+#     while True:
+#         i_bit[(i_array == last_added)] = True
+#         j_bit[(j_array == last_added)] = True
+#         try:
+#             last_added, insider, pos = find_01(i_bit, j_bit, i_array, j_array)
+#         except TypeError:
+#             break
+#         edges.append((last_added, insider, w_array[pos]))
+#     # Create the networkx graph
+#     g = nx.Graph()
+#     g.add_weighted_edges_from(edges)
+#     weight = sum([x[2] for x in edges])
+#     del edges
+#     print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
+#     try:
+#         cycle = nx.find_cycle(g)
+#     except:
+#         cycle = 'Not cycles my Lord !'
+#     print('May I see your cycles ?: {}'.format(cycle))
+#     print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
+#     print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
+#     return g
 
 #%
 @jit(nopython=True, fastmath=True)
@@ -469,55 +469,53 @@ def iterate_array2(i, node_rmsd, Kd_arr, startCount, mix):
     return c
 
 #%
-def get_prim_set(traj, Kd_arr):
-    # reserve the space for i, j, and w arrays
-    print('Reserving the space')
-    N = traj.n_frames
-    M = int(N * (N - 1) / 2)
-    # i_array = np.zeros(M, dtype=np.int32)
-    # j_array = np.zeros(M, dtype=np.int32)
-    # w_array = np.zeros(M, dtype=np.float32)
-    mix = np.recarray(M, dtype=[('i', np.int32), ('j', np.int32), ('w', np.float32)])
-    # get mrd matrix
-    print('Calculating MRD matrix')
-    startCount = 0
-    for i in range(N):
-        node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
-        startCount = iterate_array2(i, node_rmsd, Kd_arr, startCount, mix)
+# def get_prim_set(traj, Kd_arr):
+#     # reserve the space for i, j, and w arrays
+#     print('Reserving the space')
+#     N = traj.n_frames
+#     M = int(N * (N - 1) / 2)
+#     # i_array = np.zeros(M, dtype=np.int32)
+#     # j_array = np.zeros(M, dtype=np.int32)
+#     # w_array = np.zeros(M, dtype=np.float32)
+#     mix = np.recarray(M, dtype=[('i', np.int32), ('j', np.int32), ('w', np.float32)])
+#     # get mrd matrix
+#     print('Calculating MRD matrix')
+#     startCount = 0
+#     for i in range(N):
+#         node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
+#         startCount = iterate_array2(i, node_rmsd, Kd_arr, startCount, mix)
 
-    # order edges increasingly by weight
-    print('Ordering edges before processing')
-    mix.sort(order='w')
-    # Prim MST procedure
-    print('Starting MST procedure')
-    edges = []
-    mst = set()
-    mst.add(mix['i'][0])
-    auxiliar = np.ones(M, dtype=bool)
-    while True:
-        try:
-            x, y, z = find_01_set2(mix, auxiliar, mst)
-            edges.append((x, y, z))
-        except TypeError:
-            break
-    del auxiliar
-    del mst
-    # Create the networkx graph
-    g = nx.Graph()
-    g.add_weighted_edges_from(edges)
-    weight = g.size(weight='weight')
-    del edges
-    print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
-    try:
-        cycle = nx.find_cycle(g)
-    except:
-        cycle = 'Not cycles my Lord !'
-    print('May I see your cycles ?: {}'.format(cycle))
-    print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
-    print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
-    return g
-
-
+#     # order edges increasingly by weight
+#     print('Ordering edges before processing')
+#     mix.sort(order='w')
+#     # Prim MST procedure
+#     print('Starting MST procedure')
+#     edges = []
+#     mst = set()
+#     mst.add(mix['i'][0])
+#     auxiliar = np.ones(M, dtype=bool)
+#     while True:
+#         try:
+#             x, y, z = find_01_set2(mix, auxiliar, mst)
+#             edges.append((x, y, z))
+#         except TypeError:
+#             break
+#     del auxiliar
+#     del mst
+#     # Create the networkx graph
+#     g = nx.Graph()
+#     g.add_weighted_edges_from(edges)
+#     weight = g.size(weight='weight')
+#     del edges
+#     print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
+#     try:
+#         cycle = nx.find_cycle(g)
+#     except:
+#         cycle = 'Not cycles my Lord !'
+#     print('May I see your cycles ?: {}'.format(cycle))
+#     print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
+#     print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
+#     return g
 
 
 @jit(nopython=True, fastmath=True)

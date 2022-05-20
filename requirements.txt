@@ -1,0 +1,6 @@
+numpy<=1.21 
+numba>=0.55
+numpy-indexed>=0.3
+pandas>=1.4
+mdtraj>=1.9.5
+
