@@ -8,6 +8,7 @@ Created on Sun Jul 25 19:25:18 2021
 import heapq
 import itertools as it
 from collections import deque
+from bitarray import bitarray as ba
 
 import numpy as np
 import mdtraj as md
@@ -202,7 +203,6 @@ def get_tree_side(root, nn_arr):
 
 def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
     # get disconnected components
-    D2 = []
     topo_forest = get_otree_topology2(nn_arr)
     components = np.zeros(Kd_arr.size, dtype=int)
     counter = it.count(1)
@@ -210,9 +210,10 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
         component = get_node_side2(node, topo_forest)
         components[np.fromiter(component, int)] = next(counter)
     # join components
+    exhausted_ordered = []
     while exhausted:
-        D2.append((0, len(exhausted)))
         kdneg, idx = heapq.heappop(exhausted)
+        exhausted_ordered.append(idx)
         icomponent = components[idx]
         iforest = (components == icomponent).nonzero()[0]
         idx_rmsd = md.rmsd(traj, traj, idx, precentered=True)
@@ -232,7 +233,7 @@ def join_exhausted(exhausted, Kd_arr, dist_arr, nn_arr, traj):
             components[iforest] = components[acceptor]
             dist_arr[idx] = distance
             nn_arr[idx] = acceptor
-    return dist_arr, nn_arr, D2
+    return dist_arr, nn_arr, exhausted_ordered
 
 
 def check_tree(N, nn_arr, dist_arr):
@@ -288,13 +289,13 @@ def get_exact_MST(N, traj, Kd_arr):
     # Add nodes and lower triangle edges to graph -----------------------------
     graph = nx.Graph()
     graph.add_nodes_from(range(0, N))
-    vault = []
+    # vault = []
     for i in range(N):
         node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
         for j, d in enumerate(node_rmsd):
             if i == j:
                 print('equals ', i, j)
-            vault.append((i, j))
+            # vault.append((i, j))
             mdr_ij = max([Kd_arr[i], Kd_arr[j], d])
             graph.add_edge(i, j, weight=mdr_ij)
     # Get the minimum spanning tree and the weights ---------------------------
@@ -304,18 +305,6 @@ def get_exact_MST(N, traj, Kd_arr):
         weights.append(t.get_edge_data(x, y)['weight'])
     total_weights = sum(weights)
     return t, total_weights
-
-
-@jit(nopython=True, fastmath=True)
-def find_01(i_bit, j_bit, i_array, j_array):
-    for i in range(i_bit.size):
-        I = i_bit[i]
-        J = j_bit[i]
-        if I ^ J:
-            if I:
-                return j_array[i], i_array[i], i
-            elif J:
-                return i_array[i], j_array[i], i
 
 
 def get_prim_mst(traj, Kd_arr):
@@ -370,6 +359,7 @@ def get_prim_mst(traj, Kd_arr):
     return g
 
 
+
 def get_prim_mst2(traj, Kd_arr):
     # reserve the space for i, j, and w arrays
     N = traj.n_frames
@@ -417,6 +407,117 @@ def get_prim_mst2(traj, Kd_arr):
     print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
     print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
     return g
+
+#%
+@jit(nopython=True, fastmath=True)
+def find_01(i_bit, j_bit, i_array, j_array):
+    for i in range(i_bit.size):
+        I = i_bit[i]
+        J = j_bit[i]
+        if I ^ J:
+            if I:
+                return j_array[i], i_array[i], i
+            elif J:
+                return i_array[i], j_array[i], i
+
+
+@jit(nopython=True, fastmath=True)
+def find_01_set(i_array, j_array, w_array, auxiliar, mst):
+    for i in range(i_array.size):
+        if auxiliar[i]:
+            i_val = i_array[i]
+            j_val = j_array[i]
+            I = i_val in mst
+            J = j_val in mst
+            if I ^ J:
+                auxiliar[i] = False
+                if I:
+                    mst.add(j_val)
+                    return i_val, j_val, w_array[i]
+                elif J:
+                    mst.add(i_val)
+                    return i_val, j_val, w_array[i]
+
+
+@jit(nopython=True, fastmath=True)
+def find_01_set2(mix, auxiliar, mst):
+    for i in range(mix.size):
+        if auxiliar[i]:
+            i_val = mix['i'][i]
+            j_val = mix['j'][i]
+            I = i_val in mst
+            J = j_val in mst
+            if I ^ J:
+                auxiliar[i] = False
+                if I:
+                    mst.add(j_val)
+                    return i_val, j_val, mix['w'][i]
+                elif J:
+                    mst.add(i_val)
+                    return i_val, j_val, mix['w'][i]
+
+
+@jit(nopython=True, fastmath=True)
+def iterate_array2(i, node_rmsd, Kd_arr, startCount, mix):
+    c = startCount
+    for j in range(node_rmsd.size):
+        d = node_rmsd[j]
+        mix['i'][c] = i
+        mix['j'][c] = j
+        mix['w'][c] = max([d, Kd_arr[i], Kd_arr[j]])
+        c += 1
+    return c
+
+#%
+def get_prim_set(traj, Kd_arr):
+    # reserve the space for i, j, and w arrays
+    print('Reserving the space')
+    N = traj.n_frames
+    M = int(N * (N - 1) / 2)
+    # i_array = np.zeros(M, dtype=np.int32)
+    # j_array = np.zeros(M, dtype=np.int32)
+    # w_array = np.zeros(M, dtype=np.float32)
+    mix = np.recarray(M, dtype=[('i', np.int32), ('j', np.int32), ('w', np.float32)])
+    # get mrd matrix
+    print('Calculating MRD matrix')
+    startCount = 0
+    for i in range(N):
+        node_rmsd = md.rmsd(traj, traj, i, precentered=True)[:i]
+        startCount = iterate_array2(i, node_rmsd, Kd_arr, startCount, mix)
+
+    # order edges increasingly by weight
+    print('Ordering edges before processing')
+    mix.sort(order='w')
+    # Prim MST procedure
+    print('Starting MST procedure')
+    edges = []
+    mst = set()
+    mst.add(mix['i'][0])
+    auxiliar = np.ones(M, dtype=bool)
+    while True:
+        try:
+            x, y, z = find_01_set2(mix, auxiliar, mst)
+            edges.append((x, y, z))
+        except TypeError:
+            break
+    del auxiliar
+    del mst
+    # Create the networkx graph
+    g = nx.Graph()
+    g.add_weighted_edges_from(edges)
+    weight = g.size(weight='weight')
+    del edges
+    print('Are you a connected graph ?: {}'.format(nx.is_connected(g)))
+    try:
+        cycle = nx.find_cycle(g)
+    except:
+        cycle = 'Not cycles my Lord !'
+    print('May I see your cycles ?: {}'.format(cycle))
+    print('Are you a tree my dear ?: {}'.format(nx.is_tree(g)))
+    print('Ok, give me your weight !!!: {:3.5f}'.format(weight))
+    return g
+
+
 
 
 @jit(nopython=True, fastmath=True)
