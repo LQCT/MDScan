@@ -86,14 +86,14 @@ print('\n[3/4] MDSCAN clustering completed.')
 # =========================================================================== #
 # ++++ saving python objects as pickle ++++++++++++++++++++++++++++++++++++++++
 out_dir = os.path.abspath(args.outdir)
-basename = os.path.basename(args.trajectory).split('.')[0]
 # pickname = '{}.pick'.format(basename)
 # anl.pickle_to_file((Kd_arr, dist_arr, nn_arr, exhausted, selected,
 # final_array, D1, exh_ord), pickname)
 
 # ++++ saving VMD visualization script ++++++++++++++++++++++++++++++++++++++++
 os.makedirs(out_dir, exist_ok=True)
-anl.to_VMD(args.topology, args.first, args.last, N1, args.stride, final_array)
+anl.to_VMD(args.topology, args.first, args.last, N1, args.stride, final_array,
+           args.outdir)
 
 print('\n[4/4] Output files writing completed.')
 

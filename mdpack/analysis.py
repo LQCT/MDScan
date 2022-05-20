@@ -34,7 +34,7 @@ def top_has_coords(topology):
     return tt.xyz.shape[0]
 
 
-def to_VMD(topology, first, N, last, stride, final_array):
+def to_VMD(topology, first, N, last, stride, final_array, odir):
     """
     Create a .log file for visualization of clusters in VMD through a
     third-party plugin.
@@ -61,7 +61,7 @@ def to_VMD(topology, first, N, last, stride, final_array):
 
     """
     basename = os.path.basename(topology).split('.')[0]
-    logname = '{}.log'.format(basename)
+    logname = os.path.join(odir, '{}.log'.format(basename))
     vmd_offset = top_has_coords(topology)
     start = first
     if not last:
