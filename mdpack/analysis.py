@@ -72,8 +72,19 @@ def to_VMD(topology, first, N, last, stride, final_array):
     nmr_offset = 1
     with open(logname, 'wt') as clq:
         for num in np.unique(final_array):
-            clq.write('{}:\n'.format(num))
-            cframes = np.where(final_array == num)[0]
+            if num != -1:
+                clq.write('{}:\n'.format(num))
+                cframes = np.where(final_array == num)[0]
+                if vmd_offset:
+                    real_frames = slice_frames[cframes] + nmr_offset + vmd_offset
+                else:
+                    real_frames = slice_frames[cframes] + nmr_offset
+                str_frames = [str(x) for x in real_frames]
+                members = ' '.join(str_frames)
+                clq.write('Members: ' + members + '\n\n')
+        if -1 in np.unique(final_array):
+            clq.write('{}:\n'.format(-1))
+            cframes = np.where(final_array == -1)[0]
             if vmd_offset:
                 real_frames = slice_frames[cframes] + nmr_offset + vmd_offset
             else:
