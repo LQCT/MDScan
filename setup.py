@@ -23,7 +23,7 @@ setup(
     ],
     packages=["mdscan"],
     include_package_data=True,
-    install_requires=['numpy<=1.21 ', 'numba>=0.55', 'mdtraj>=1.9.5',
+    install_requires=['numpy==1.21 ', 'numba>=0.55', 'mdtraj>=1.9.5',
                       'numpy-indexed>=0.3', 'pandas>=1.4'],
     entry_points={
         "console_scripts": [
