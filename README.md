@@ -6,7 +6,7 @@ MDSCAN is a Python command-line interface (CLI) conceived to speed up and signif
 
 ## Installation
 
-There are some easy-to-install dependencies you must have before running MDSCAN. MDTraj (mandatory) will perform the heavy RMSD calculations, while VMD (optional) will help with visualization tasks. The rest of the dependencies (listed below) will be automatically managed while installing MDSCAN.
+There are some easy-to-install dependencies you should have before running MDSCAN. MDTraj (mandatory) will perform the heavy RMSD calculations, while VMD (optional) will help with visualization tasks. The rest of the dependencies (see the requirements.txt file) will be automatically managed while installing MDSCAN.
 
 
 #### 1. **MDTraj**
