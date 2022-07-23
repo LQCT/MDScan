@@ -1,0 +1,14 @@
+name: mdscan
+channels:
+  - defaults
+  - conda-forge
+  - anaconda
+dependencies:
+  - python>=3.6
+  - numpy
+  - numba>=0.55
+  - pandas
+  - mdtraj
+  - matplotlib>=3.1.0
+  - networkx>=2.3
+  - numpy-indexed>=0.3
