@@ -1,5 +1,5 @@
 import pathlib
-from setuptools import setup, find_packages
+from setuptools import setup
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="mdscan",
-    version="0.0.2",
+    version="0.0.3",
     description="RMSD-Based HDBSCAN Clustering of Long Molecular Dynamics",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -21,14 +21,13 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
     ],
-    packages=find_packages(where='src'),
-    package_dir={"":"src"},
+    packages=["mdscan"],
     include_package_data=True,
     install_requires=['numpy==1.21 ', 'numba>=0.55', 'mdtraj>=1.9.5',
                       'numpy-indexed>=0.3', 'pandas>=1.4'],
     entry_points={
         "console_scripts": [
-            "mdscan=src.mdscan:main",
+            "mdscan = mdscan.__main__:main",
         ]
     },
 )
