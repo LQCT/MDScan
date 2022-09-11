@@ -10,10 +10,10 @@ import time
 
 import numpy as np
 
-from mdpack import qmst
-from mdpack import trajload as trl
-from mdpack import clusterize as clt
-from mdpack import analysis as anl
+from mdscan import qmst
+from mdscan import trajload as trl
+from mdscan import clusterize as clt
+from mdscan import analysis as anl
 
 
 def main():

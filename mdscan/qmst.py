@@ -15,8 +15,8 @@ import mdtraj as md
 # import networkx as nx
 from numba import jit
 
-import mdpack.vantage as vnt
-from mdpack.clusterize import get_node_side2, get_otree_topology2
+import mdscan.vantage as vnt
+from mdscan.clusterize import get_node_side2, get_otree_topology2
 
 # @profile
 # def get_node_info(node, traj, k):
